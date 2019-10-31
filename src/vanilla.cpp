@@ -188,42 +188,106 @@ Rcpp::List americanOptionEngine(std::string type,
             engine = "CrankNicolson";
         }
 
-        if (engine=="CrankNicolson") { // FDDividendAmericanEngine only works with CrankNicolson
+        if (engine=="Douglas" | engine=="CrankNicolson" | engine=="ImplicitEuler" | engine=="ExplicitEuler" | 
+                 engine=="MethodOfLines" | engine=="Hundsdorfer" |  engine=="CraigSneyd" | engine=="ModifiedCraigSneyd" | 
+                 engine=="TrBDF2") {
             // suggestion by Bryan Lewis: use CrankNicolson for greeks
-            QuantLib::ext::shared_ptr<QuantLib::PricingEngine>
-            fdcnengine(new QuantLib::FDDividendAmericanEngine<QuantLib::CrankNicolson>(stochProcess, timeSteps, gridPoints));
-            option.setPricingEngine(fdcnengine);
-            return Rcpp::List::create(Rcpp::Named("value") = option.NPV(),
-                                      Rcpp::Named("delta") = option.delta(),
-                                      Rcpp::Named("gamma") = option.gamma(),
-                                      Rcpp::Named("vega") = R_NaReal,
-                                      Rcpp::Named("theta") = R_NaReal,
-                                      Rcpp::Named("rho") = R_NaReal,
-                                      Rcpp::Named("divRho") = R_NaReal);
+            // Crank-Nicolson and Douglas scheme are the same in one dimension
+            QuantLib::ext::shared_ptr<QuantLib::PricingEngine> pricingEngine;
+            if(engine == "Douglas" | engine ==  "CrankNicolson") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Douglas());
+            } else if(engine == "ImplicitEuler") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ImplicitEuler());
+            } else if(engine == "ExplicitEuler") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ExplicitEuler());
+            } else if(engine == "MethodOfLines") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::MethodOfLines());
+            } else if(engine == "Hundsdorfer") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Hundsdorfer());
+            } else if(engine == "CraigSneyd") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::CraigSneyd());
+            } else if(engine == "ModifiedCraigSneyd") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ModifiedCraigSneyd());
+            } else if(engine == "TrBDF2") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::TrBDF2());
+            } else pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Douglas());
+            
+            option.setPricingEngine(pricingEngine);
+            
         } else {
             throw std::range_error("Unknown engine " + engine);
         }
+        
+        return Rcpp::List::create(Rcpp::Named("value") = option.NPV(),
+                                  Rcpp::Named("delta") = option.delta(),
+                                  Rcpp::Named("gamma") = option.gamma(),
+                                  Rcpp::Named("vega") = R_NaReal,
+                                  Rcpp::Named("theta") = R_NaReal,
+                                  Rcpp::Named("rho") = R_NaReal,
+                                  Rcpp::Named("divRho") = R_NaReal);
 
     } else {
         QuantLib::VanillaOption option(payoff, exercise);
 
         if (engine=="BaroneAdesiWhaley") {
             // new from 0.3.7 BaroneAdesiWhaley
-
-            QuantLib::ext::shared_ptr<QuantLib::PricingEngine> engine(new QuantLib::BaroneAdesiWhaleyApproximationEngine(stochProcess));
-            option.setPricingEngine(engine);
+            
+            QuantLib::ext::shared_ptr<QuantLib::PricingEngine> 
+                pricingEngine(new QuantLib::BaroneAdesiWhaleyApproximationEngine(stochProcess));
+            option.setPricingEngine(pricingEngine);
+            
             return Rcpp::List::create(Rcpp::Named("value") = option.NPV(),
-                                      Rcpp::Named("delta") = R_NaReal,
-                                      Rcpp::Named("gamma") = R_NaReal,
-                                      Rcpp::Named("vega") = R_NaReal,
-                                      Rcpp::Named("theta") = R_NaReal,
-                                      Rcpp::Named("rho") = R_NaReal,
-                                      Rcpp::Named("divRho") = R_NaReal);
-        } else if (engine=="CrankNicolson") {
+                                      Rcpp::Named("delta") = option.delta(),
+                                      Rcpp::Named("gamma") = option.gamma(),
+                                      Rcpp::Named("vega") = option.vega(),
+                                      Rcpp::Named("theta") = option.theta(),
+                                      Rcpp::Named("rho") = option.rho(),
+                                      Rcpp::Named("divRho") = option.dividendRho());
+
+        } else if (engine=="Douglas" | engine=="CrankNicolson" | engine=="ImplicitEuler" | engine=="ExplicitEuler" | 
+            engine=="MethodOfLines" | engine=="Hundsdorfer" |  engine=="CraigSneyd" | engine=="ModifiedCraigSneyd" | 
+            engine=="TrBDF2") {
+            
             // suggestion by Bryan Lewis: use CrankNicolson for greeks
-            QuantLib::ext::shared_ptr<QuantLib::PricingEngine>
-            fdcnengine(new QuantLib::FDAmericanEngine<QuantLib::CrankNicolson>(stochProcess, timeSteps, gridPoints));
-            option.setPricingEngine(fdcnengine);
+            // Crank-Nicolson and Douglas scheme are the same in one dimension
+            QuantLib::ext::shared_ptr<QuantLib::PricingEngine> pricingEngine;
+            if(engine == "Douglas" | engine ==  "CrankNicolson") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Douglas());
+            } else if(engine == "ImplicitEuler") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ImplicitEuler());
+            } else if(engine == "ExplicitEuler") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ExplicitEuler());
+            } else if(engine == "MethodOfLines") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::MethodOfLines());
+            } else if(engine == "Hundsdorfer") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Hundsdorfer());
+            } else if(engine == "CraigSneyd") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::CraigSneyd());
+            } else if(engine == "ModifiedCraigSneyd") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ModifiedCraigSneyd());
+            } else if(engine == "TrBDF2") {
+                pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                    stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::TrBDF2());
+            } else pricingEngine = QuantLib::ext::make_shared<QuantLib::FdBlackScholesVanillaEngine>(
+                stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Douglas());
+            
+            option.setPricingEngine(pricingEngine);
             return Rcpp::List::create(Rcpp::Named("value") = option.NPV(),
                                       Rcpp::Named("delta") = option.delta(),
                                       Rcpp::Named("gamma") = option.gamma(),
@@ -231,11 +295,13 @@ Rcpp::List americanOptionEngine(std::string type,
                                       Rcpp::Named("theta") = R_NaReal,
                                       Rcpp::Named("rho") = R_NaReal,
                                       Rcpp::Named("divRho") = R_NaReal);
+
         } else {
             throw std::range_error("Unknown engine " + engine);
         }
+        
+        
     }
-
 
 }
 

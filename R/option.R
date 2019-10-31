@@ -48,7 +48,9 @@ AmericanOption.default <- function(type, underlying, strike, dividendYield,
                                    engine="BaroneAdesiWhaley",
                                    discreteDividends = NULL, discreteDividendsTimeUntil = NULL) {
     type <- match.arg(type, c("call", "put"))
-    engine <- match.arg(engine, c("BaroneAdesiWhaley", "CrankNicolson"))
+    engine <- match.arg(engine, c("BaroneAdesiWhaley", "CrankNicolson", "Douglas", "ImplicitEuler", 
+                                  "ExplicitEuler", "MethodOfLines", "Hundsdorfer", 
+                                  "CraigSneyd", "ModifiedCraigSneyd", "TrBDF2"))
     val <- americanOptionEngine(type, underlying, strike, dividendYield,
                                 riskFreeRate, maturity, volatility,
                                 timeSteps, gridPoints, engine,
