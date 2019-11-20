@@ -141,13 +141,39 @@ enum optionType { European = 0, American };
 QuantLib::ext::shared_ptr<QuantLib::VanillaOption>
 makeOption(const QuantLib::ext::shared_ptr<QuantLib::StrikedTypePayoff>& payoff,
            const QuantLib::ext::shared_ptr<QuantLib::Exercise>& exercise,
-           const QuantLib::ext::shared_ptr<QuantLib::Quote>& u,
+           const QuantLib::ext::shared_ptr<QuantLib::SimpleQuote>& u,
            const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& q,
            const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& r,
            const QuantLib::ext::shared_ptr<QuantLib::BlackVolTermStructure>& vol,
-           EngineType engineType = Analytic,
+           EngineType engineType,
            QuantLib::Size binomialSteps=128,
            QuantLib::Size samples=100);
+
+
+// namespace QuantLib {
+//     QuantLib::Real OneAssetOption::delta_or_null();
+// }
+
+
+QuantLib::ext::shared_ptr<QuantLib::PricingEngine>
+makePricingEngine(
+    const QuantLib::ext::shared_ptr<QuantLib::Quote>& u,
+    const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& q,
+    const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& r,
+    const QuantLib::ext::shared_ptr<QuantLib::BlackVolTermStructure>& vol,
+    std::string engineType,
+    QuantLib::Size timeSteps=128,
+    QuantLib::Size gridPoints=128);
+
+QuantLib::ext::shared_ptr<QuantLib::PricingEngine> 
+makeDividendPricingEngine(
+    const QuantLib::ext::shared_ptr<QuantLib::Quote>& u,
+    const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& q,
+    const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& r,
+    const QuantLib::ext::shared_ptr<QuantLib::BlackVolTermStructure>& vol,
+    std::string engineType,
+    QuantLib::Size timeSteps=128,
+    QuantLib::Size gridPoints=128);
 
 QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess>
 makeProcess(const QuantLib::ext::shared_ptr<QuantLib::Quote>& u,

@@ -591,38 +591,17 @@ namespace RQuantLib {
         return Rcpp::as<Rcpp::LogicalVector >(rcpp_result_gen);
     }
 
-    inline Rcpp::List europeanOptionEngine(std::string type, double underlying, double strike, double dividendYield, double riskFreeRate, double maturity, double volatility, Rcpp::Nullable<Rcpp::NumericVector> discreteDividends, Rcpp::Nullable<Rcpp::NumericVector> discreteDividendsTimeUntil, std::string engine, int timeSteps, int gridPoints) {
-        typedef SEXP(*Ptr_europeanOptionEngine)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_europeanOptionEngine p_europeanOptionEngine = NULL;
-        if (p_europeanOptionEngine == NULL) {
-            validateSignature("Rcpp::List(*europeanOptionEngine)(std::string,double,double,double,double,double,double,Rcpp::Nullable<Rcpp::NumericVector>,Rcpp::Nullable<Rcpp::NumericVector>,std::string,int,int)");
-            p_europeanOptionEngine = (Ptr_europeanOptionEngine)R_GetCCallable("RQuantLib", "_RQuantLib_europeanOptionEngine");
+    inline Rcpp::List vanillaOptionEngine(std::string exerciseType, std::string type, double underlying, double strike, double dividendYield, double riskFreeRate, double maturity, double volatility, Rcpp::Nullable<Rcpp::NumericVector> discreteDividends, Rcpp::Nullable<Rcpp::NumericVector> discreteDividendsTimeUntil, std::string engine, int timeSteps, int gridPoints) {
+        typedef SEXP(*Ptr_vanillaOptionEngine)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_vanillaOptionEngine p_vanillaOptionEngine = NULL;
+        if (p_vanillaOptionEngine == NULL) {
+            validateSignature("Rcpp::List(*vanillaOptionEngine)(std::string,std::string,double,double,double,double,double,double,Rcpp::Nullable<Rcpp::NumericVector>,Rcpp::Nullable<Rcpp::NumericVector>,std::string,int,int)");
+            p_vanillaOptionEngine = (Ptr_vanillaOptionEngine)R_GetCCallable("RQuantLib", "_RQuantLib_vanillaOptionEngine");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_europeanOptionEngine(Shield<SEXP>(Rcpp::wrap(type)), Shield<SEXP>(Rcpp::wrap(underlying)), Shield<SEXP>(Rcpp::wrap(strike)), Shield<SEXP>(Rcpp::wrap(dividendYield)), Shield<SEXP>(Rcpp::wrap(riskFreeRate)), Shield<SEXP>(Rcpp::wrap(maturity)), Shield<SEXP>(Rcpp::wrap(volatility)), Shield<SEXP>(Rcpp::wrap(discreteDividends)), Shield<SEXP>(Rcpp::wrap(discreteDividendsTimeUntil)), Shield<SEXP>(Rcpp::wrap(engine)), Shield<SEXP>(Rcpp::wrap(timeSteps)), Shield<SEXP>(Rcpp::wrap(gridPoints)));
-        }
-        if (rcpp_result_gen.inherits("interrupted-error"))
-            throw Rcpp::internal::InterruptedException();
-        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
-            throw Rcpp::LongjumpException(rcpp_result_gen);
-        if (rcpp_result_gen.inherits("try-error"))
-            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
-        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
-    }
-
-    inline Rcpp::List americanOptionEngine(std::string type, double underlying, double strike, double dividendYield, double riskFreeRate, double maturity, double volatility, int timeSteps, int gridPoints, std::string engine, Rcpp::Nullable<Rcpp::NumericVector> discreteDividends, Rcpp::Nullable<Rcpp::NumericVector> discreteDividendsTimeUntil) {
-        typedef SEXP(*Ptr_americanOptionEngine)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
-        static Ptr_americanOptionEngine p_americanOptionEngine = NULL;
-        if (p_americanOptionEngine == NULL) {
-            validateSignature("Rcpp::List(*americanOptionEngine)(std::string,double,double,double,double,double,double,int,int,std::string,Rcpp::Nullable<Rcpp::NumericVector>,Rcpp::Nullable<Rcpp::NumericVector>)");
-            p_americanOptionEngine = (Ptr_americanOptionEngine)R_GetCCallable("RQuantLib", "_RQuantLib_americanOptionEngine");
-        }
-        RObject rcpp_result_gen;
-        {
-            RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_americanOptionEngine(Shield<SEXP>(Rcpp::wrap(type)), Shield<SEXP>(Rcpp::wrap(underlying)), Shield<SEXP>(Rcpp::wrap(strike)), Shield<SEXP>(Rcpp::wrap(dividendYield)), Shield<SEXP>(Rcpp::wrap(riskFreeRate)), Shield<SEXP>(Rcpp::wrap(maturity)), Shield<SEXP>(Rcpp::wrap(volatility)), Shield<SEXP>(Rcpp::wrap(timeSteps)), Shield<SEXP>(Rcpp::wrap(gridPoints)), Shield<SEXP>(Rcpp::wrap(engine)), Shield<SEXP>(Rcpp::wrap(discreteDividends)), Shield<SEXP>(Rcpp::wrap(discreteDividendsTimeUntil)));
+            rcpp_result_gen = p_vanillaOptionEngine(Shield<SEXP>(Rcpp::wrap(exerciseType)), Shield<SEXP>(Rcpp::wrap(type)), Shield<SEXP>(Rcpp::wrap(underlying)), Shield<SEXP>(Rcpp::wrap(strike)), Shield<SEXP>(Rcpp::wrap(dividendYield)), Shield<SEXP>(Rcpp::wrap(riskFreeRate)), Shield<SEXP>(Rcpp::wrap(maturity)), Shield<SEXP>(Rcpp::wrap(volatility)), Shield<SEXP>(Rcpp::wrap(discreteDividends)), Shield<SEXP>(Rcpp::wrap(discreteDividendsTimeUntil)), Shield<SEXP>(Rcpp::wrap(engine)), Shield<SEXP>(Rcpp::wrap(timeSteps)), Shield<SEXP>(Rcpp::wrap(gridPoints)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

@@ -36,20 +36,20 @@ QuantLib::Option::Type getOptionType(const std::string &type) {
 
 // cf QuantLib-0.9.0/test-suite/europeanoption.cpp
 QuantLib::ext::shared_ptr<QuantLib::VanillaOption>
-makeOption(const QuantLib::ext::shared_ptr<QuantLib::StrikedTypePayoff>& payoff,
-           const QuantLib::ext::shared_ptr<QuantLib::Exercise>& exercise,
-           const QuantLib::ext::shared_ptr<QuantLib::Quote>& u,
-           const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& q,
-           const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& r,
-           const QuantLib::ext::shared_ptr<QuantLib::BlackVolTermStructure>& vol,
-           EngineType engineType,
-           QuantLib::Size binomialSteps,
-           QuantLib::Size samples) {
-
+    makeOption(const QuantLib::ext::shared_ptr<QuantLib::StrikedTypePayoff>& payoff,
+               const QuantLib::ext::shared_ptr<QuantLib::Exercise>& exercise,
+               const QuantLib::ext::shared_ptr<QuantLib::SimpleQuote>& u,
+               const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& q,
+               const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& r,
+               const QuantLib::ext::shared_ptr<QuantLib::BlackVolTermStructure>& vol,
+               EngineType engineType,
+               QuantLib::Size binomialSteps,
+               QuantLib::Size samples) {
+    
     QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess> stochProcess = makeProcess(u,q,r,vol);
     QuantLib::ext::shared_ptr<QuantLib::PricingEngine> engine;
     typedef QuantLib::ext::shared_ptr<QuantLib::PricingEngine> spPE; // shorthand used below
-
+    
     switch (engineType) {
     case Analytic:
         engine = spPE(new QuantLib::AnalyticEuropeanEngine(stochProcess));
@@ -83,14 +83,14 @@ makeOption(const QuantLib::ext::shared_ptr<QuantLib::StrikedTypePayoff>& payoff,
         break;
     case PseudoMonteCarlo:
         engine = QuantLib::MakeMCEuropeanEngine<QuantLib::PseudoRandom>(stochProcess)
-            .withStepsPerYear(1)
-            .withSamples(samples)
-            .withSeed(42);
+        .withStepsPerYear(1)
+        .withSamples(samples)
+        .withSeed(42);
         break;
     case QuasiMonteCarlo:
         engine = QuantLib::MakeMCEuropeanEngine<QuantLib::LowDiscrepancy>(stochProcess)
-            .withStepsPerYear(1)
-            .withSamples(samples);
+        .withStepsPerYear(1)
+        .withSamples(samples);
         break;
     default:
         QL_FAIL("Unknown engine type");
@@ -99,6 +99,171 @@ makeOption(const QuantLib::ext::shared_ptr<QuantLib::StrikedTypePayoff>& payoff,
     option->setPricingEngine(engine);
     return option;
 }
+
+
+// namespace QuantLib {
+//     QuantLib::Real OneAssetOption::delta_or_null() const {
+//         calculate();
+//         // QL_REQUIRE(delta_ != Null<Real>(), "delta not provided");
+//         return delta_;
+//     }
+// }
+
+
+
+QuantLib::ext::shared_ptr<QuantLib::PricingEngine>
+    makePricingEngine(
+           const QuantLib::ext::shared_ptr<QuantLib::Quote>& u,
+           const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& q,
+           const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& r,
+           const QuantLib::ext::shared_ptr<QuantLib::BlackVolTermStructure>& vol,
+           std::string engineType,
+           QuantLib::Size timeSteps,
+           QuantLib::Size gridPoints) {
+    
+    QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess> stochProcess = makeProcess(u,q,r,vol);
+    QuantLib::ext::shared_ptr<QuantLib::PricingEngine> pricingEngine;
+    typedef QuantLib::ext::shared_ptr<QuantLib::PricingEngine> spPE; // shorthand used below
+    
+    if (engineType == "Analytic") {
+        pricingEngine = spPE(new QuantLib::AnalyticEuropeanEngine(stochProcess));
+    } else if (engineType == "JR") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::JarrowRudd>(stochProcess, timeSteps));
+    } else if (engineType == "CRR") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::CoxRossRubinstein>(stochProcess, timeSteps));
+    } else if (engineType == "EQP") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::AdditiveEQPBinomialTree>(stochProcess, timeSteps));
+    } else if (engineType == "TGEO") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::Trigeorgis>(stochProcess, timeSteps));
+    } else if (engineType == "TIAN") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::Tian>(stochProcess, timeSteps));
+    } else if (engineType == "LR") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::LeisenReimer>(stochProcess, timeSteps));
+    } else if (engineType == "JOSHI") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::Joshi4>(stochProcess, timeSteps));
+    } else if (engineType == "BaroneAdesiWhaley") {
+        pricingEngine = spPE(new QuantLib::BaroneAdesiWhaleyApproximationEngine(stochProcess));
+    } else if (engineType == "BjerksundStensland") {
+        pricingEngine = spPE(new QuantLib::BjerksundStenslandApproximationEngine(stochProcess));
+    } else if(engineType == "Douglas" | engineType ==  "CrankNicolson") {
+        // Crank-Nicolson and Douglas scheme are the same in one dimension
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Douglas()));
+    } else if (engineType == "ImplicitEuler") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ImplicitEuler()));
+    } else if (engineType == "ExplicitEuler") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ExplicitEuler()));
+    } else if (engineType == "MethodOfLines") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::MethodOfLines()));
+    } else if (engineType == "Hundsdorfer") {
+        pricingEngine =spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Hundsdorfer()));
+    } else if (engineType == "CraigSneyd") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::CraigSneyd()));
+    } else if (engineType == "ModifiedCraigSneyd") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ModifiedCraigSneyd()));
+    } else if (engineType == "TrBDF2") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::TrBDF2()));
+    } else if (engineType == "Integral") {
+        pricingEngine = spPE(new QuantLib::IntegralEngine(stochProcess));
+    } else if (engineType == "PseudoMonteCarlo") {
+        pricingEngine = QuantLib::MakeMCEuropeanEngine<QuantLib::PseudoRandom>(stochProcess)
+            .withStepsPerYear(timeSteps)
+            .withSamples(gridPoints);
+    } else if (engineType == "QuasiMonteCarlo") {
+        pricingEngine = QuantLib::MakeMCEuropeanEngine<QuantLib::LowDiscrepancy>(stochProcess)
+            .withStepsPerYear(timeSteps)
+            .withSamples(gridPoints);
+    } else if (engineType == "FFT") {
+        pricingEngine = spPE(new QuantLib::FFTVanillaEngine(stochProcess));
+    } else {
+        QL_FAIL("Unknown engine type");
+    }
+    
+    return pricingEngine;
+}
+
+QuantLib::ext::shared_ptr<QuantLib::PricingEngine>
+    makeDividendPricingEngine(
+           const QuantLib::ext::shared_ptr<QuantLib::Quote>& u,
+           const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& q,
+           const QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure>& r,
+           const QuantLib::ext::shared_ptr<QuantLib::BlackVolTermStructure>& vol,
+           std::string engineType,
+           QuantLib::Size timeSteps,
+           QuantLib::Size gridPoints) {
+    
+    QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess> stochProcess = makeProcess(u,q,r,vol);
+    typedef QuantLib::ext::shared_ptr<QuantLib::PricingEngine> spPE; // shorthand used below
+    spPE pricingEngine;
+    
+    if (engineType == "Analytic") {
+        pricingEngine = spPE(new QuantLib::AnalyticEuropeanEngine(stochProcess));
+    } else if (engineType == "JR") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::JarrowRudd>(stochProcess, timeSteps));
+    } else if (engineType == "CRR") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::CoxRossRubinstein>(stochProcess, timeSteps));
+    } else if (engineType == "EQP") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::AdditiveEQPBinomialTree>(stochProcess, timeSteps));
+    } else if (engineType == "TGEO") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::Trigeorgis>(stochProcess, timeSteps));
+    } else if (engineType == "TIAN") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::Tian>(stochProcess, timeSteps));
+    } else if (engineType == "LR") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::LeisenReimer>(stochProcess, timeSteps));
+    } else if (engineType == "JOSHI") {
+        pricingEngine = spPE(new QuantLib::BinomialVanillaEngine<QuantLib::Joshi4>(stochProcess, timeSteps));
+    } else if(engineType == "Douglas" | engineType ==  "CrankNicolson") {
+        // Crank-Nicolson and Douglas scheme are the same in one dimension
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Douglas()));
+    } else if (engineType == "ImplicitEuler") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ImplicitEuler()));
+    } else if (engineType == "ExplicitEuler") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ExplicitEuler()));
+    } else if (engineType == "MethodOfLines") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::MethodOfLines()));
+    } else if (engineType == "Hundsdorfer") {
+        pricingEngine =spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::Hundsdorfer()));
+    } else if (engineType == "CraigSneyd") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::CraigSneyd()));
+    } else if (engineType == "ModifiedCraigSneyd") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::ModifiedCraigSneyd()));
+    } else if (engineType == "TrBDF2") {
+        pricingEngine = spPE(new QuantLib::FdBlackScholesVanillaEngine(
+            stochProcess, timeSteps, gridPoints, 0, QuantLib::FdmSchemeDesc::TrBDF2()));
+    } else if (engineType == "Integral") {
+        pricingEngine = spPE(new QuantLib::IntegralEngine(stochProcess));
+    } else if (engineType == "PseudoMonteCarlo") {
+        pricingEngine = QuantLib::MakeMCEuropeanEngine<QuantLib::PseudoRandom>(stochProcess)
+            .withStepsPerYear(timeSteps)
+            .withSamples(gridPoints);
+    } else if (engineType == "QuasiMonteCarlo") {
+        pricingEngine = QuantLib::MakeMCEuropeanEngine<QuantLib::LowDiscrepancy>(stochProcess)
+            .withStepsPerYear(timeSteps)
+            .withSamples(gridPoints);
+    } else if (engineType == "FFT") {
+        pricingEngine = spPE(new QuantLib::FFTVanillaEngine(stochProcess));
+    } else {
+        QL_FAIL("Unknown engine type");
+    }
+    
+    return pricingEngine;
+}
+
+
 
 // QuantLib option setup utils, copied from the test-suite sources
 QuantLib::ext::shared_ptr<QuantLib::YieldTermStructure> buildTermStructure(Rcpp::List rparam, Rcpp::List tslist) {
